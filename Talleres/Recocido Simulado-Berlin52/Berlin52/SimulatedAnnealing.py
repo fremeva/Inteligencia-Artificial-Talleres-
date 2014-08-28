@@ -2,6 +2,7 @@ __author__ = 'FDL'
 #****Librerias****
 import math
 import random
+import copy
 
 nciudad = 52            #Numero de ciudad para el Tur (EN ESTE CASO ES 52)
 x =[]                   #Lista de los Puntos x de las coordenadas de cada ciudad
@@ -10,6 +11,7 @@ mcoordenada = []        #Matriz de las coordenadas [nciudad][2]
 amatriz= []             #Matriz de Adyacencia
 k=0                     #Variable aux de indice de la lista x[]
 l=0                     #Variable aux de indice de la lista y[]
+
 #Contruimos la Matriz de coordenadas  y la inicializamos en 0 cada elemento
 for i in range(nciudad):
     mcoordenada.append([0]*2)
@@ -73,34 +75,32 @@ def perturbacion(tur):
             break
     return tur
 
+
+
 #INICIO
-T=10000000                          #Temperatura Inicial
+T=10000                         #Temperatura Inicial
 inicial_tur=[]                      #Tur Inicial.
 alfa=0.99                           #Enfriamiento
 niteracion=10000                    #numero de iteraciones
-
 inicial_tur=xInicial()              #Obtenemos el recorrido inicial
 z_inicial=calcularZ(inicial_tur)    #calculamos el costo Inicial
 
-for i in range(niteracion):
-    nuevo_tur=[]
-    nuevo_tur += inicial_tur
+for c in range(niteracion):
+    nuevo_tur= copy.deepcopy(inicial_tur)
     nuevo_tur = perturbacion(nuevo_tur) #Perturbamos la solucion Inicial
     z_nueva=calcularZ(nuevo_tur)        #Calculamos el Nuevo costo con el recorrido perturbado
     if(z_nueva<z_inicial):
-        inicial_tur=nuevo_tur
+        inicial_tur=copy.deepcopy(nuevo_tur)
         z_inicial=z_nueva
-        T=T*0.99
     else:
         z_delta = z_nueva - z_inicial   #Delta de Z
         prob=math.pow(math.e,(-1*z_delta/T))  #Distribucion de probabilidad
         n=random.random()
         if (n<prob):
-            inicial_tur=nuevo_tur
+            inicial_tur=copy.deepcopy(nuevo_tur)
             z_inicial=z_nueva
-            T=T*0.99
+    T = alfa*T
 
 #SALIDAS
 print "una Solucion Optima es: ", z_inicial
-print "Tur correspondiente es:"
-print inicial_tur
+print "Tur correspondiente es:", inicial_tur
