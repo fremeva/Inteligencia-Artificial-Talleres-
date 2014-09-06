@@ -1,13 +1,9 @@
-__author__ = ''
+__author__ = 'Fredy'
 #Librerias
 import string, math, random, copy
 
 #Funcion para obtener los valores de la Matriz de Adyacencia
 def distancesFromCoords():
-    '''
-    @author: william
-    Esta funcion toma el archivo berlin52 y produce una matriz con las distancias entre las ciudades.
-    '''
     f = open('berlin52.tsp')
     data = [string.split(line.replace("\n",""), " ")[1:] for line in f.readlines()[6:58]]
     coords =  map(lambda x: [float(x[0]),float(x[1])], data)
@@ -21,16 +17,19 @@ def distancesFromCoords():
 #---------------------------------------------------------------
 ###Matriz de Adyacencia de las distancias entre las ciudades.###
 distancias = distancesFromCoords()
+
 #-------------------------------------------
 #Variables Importantes
-ciudades=4                      #Numero de ciudades, como hes berlin52 serian 52.
-alfa = 0.5                        #Alfa
-beta = 1
-p = 0.5                         #rooo
+ciudades=52                      #Numero de ciudades, como hes berlin52 serian 52.
+alfa = 1.                        #Alfa
+beta = 2.
+roo = 0.5                         #rooo
 mHormigas = ciudades                    #Numero de Hormigas
+nHormigExploradora = 100
 
 #Matriz De Feromonas.
-feromonaMatriz= [([0.1]*ciudades) for i in range(ciudades)]
+feromonaMatriz= [([0.01]*ciudades) for i in range(ciudades)]
+
 def inversoMultiplicativo(matriz):
     inversa = copy.deepcopy(matriz)
     for i in range(len(matriz)):
@@ -39,11 +38,12 @@ def inversoMultiplicativo(matriz):
                 inversa[i][j] = (1.0/inversa[i][j])
     return inversa
 
+#Matriz Heuristica Local
 matrizHeuristicaLocal= inversoMultiplicativo(distancias)
 
 #Funcion para calular el costo de un tur.
 def calcularCosto(tur):
-    z=0
+    z=0.0
     for i in range(0,len(tur)):
         if (i<(len(tur)-1)):
             z = z + distancias[(tur[i])][(tur[i+1])]
@@ -56,104 +56,100 @@ def unTurAleatorio(nciud):
     tur=[0]*nciud
     for i in range(nciud):
         tur[i]=i
-
     random.shuffle(tur)
     return tur
 
 def tures_iniciales(nhormigas,nciud):
-    '''
-    Funcion para generar las Hormigas exploratorias(Tures iniciales)
-    :param nhormigas: numeros de hromigas
-    :param nciud: numeros de ciudades que recorre cada hormiga
-    :return: una matriz de tures iniciales.
-    '''
     salida=[]
     for i in range(nhormigas):
         tur=[]
-        for j in range(nhormigas):
-            tur=unTurAleatorio(nciud)
+        tur=unTurAleatorio(nciud)
         salida.append(tur)
-
     return salida
 
 def ActualizarMatrizFeromona(tur):
     costo = calcularCosto(tur)
+    var = 1.0/costo
     for i in range(len(tur)):
         if(i==(len(tur)-1)):
-            feromonaMatriz[tur[i]][tur[0]]=feromonaMatriz[tur[i]][tur[0]]+(1.0/costo)
+            feromonaMatriz[tur[i]][tur[0]]=feromonaMatriz[tur[i]][tur[0]]+var
         else:
-            feromonaMatriz[tur[i]][tur[i+1]]=feromonaMatriz[tur[i]][tur[i+1]]+(1.0/costo)
+            feromonaMatriz[tur[i]][tur[i+1]]=feromonaMatriz[tur[i]][tur[i+1]]+var
 
 def evaporacionFeromona():
-    for i in range (ciudades):
-        for j in range(ciudades):
-            feromonaMatriz [i][j]=(1-p)*feromonaMatriz[i][j]
+    for i in range (0,ciudades):
+        for j in range(0,ciudades):
+            feromonaMatriz [i][j]=(1-roo)*feromonaMatriz[i][j]
 
 def ciudadInicial():
     ciud = random.randrange(ciudades)
     return ciud
 
 def sumatoria(ciudadActual,ciudadesVisitadas):
-    salida=0.0
+    salida=0.00000000000001
     for j in range(ciudades):
-
         if not(j in ciudadesVisitadas):
             salida=salida+((feromonaMatriz[ciudadActual][j])**alfa)*((matrizHeuristicaLocal[ciudadActual][j])**beta)
-            print "SALIDA: " + str(salida)
-            print "MatrizHeuristica " + str(matrizHeuristicaLocal[ciudadActual][j])
 
     return salida
 
-def elegirCiudad(probabilidades):
-    numeroAleatoreo = random.random()
-    for i in range(len(probabilidades)):
-        if(numeroAleatoreo<=probabilidades[i]):
-            return i
+def elegirCiudad(probabilidad):
+    numeroAleatorio=random.random()
+    ciudad=probabilidad.keys()[0]
+    for i in probabilidad.keys():
+            if numeroAleatorio>probabilidad[i]:
+                if probabilidad[i]>probabilidad[ciudad]:
+                    ciudad=i
+            else:
+                if probabilidad[i]>probabilidad[ciudad]:
+                    ciudad=i
+
+    return ciudad
 
 def recorrido():
-    probabilidades=[]
+    probabilidades={}
     ciudadesVisitadas=[]
-    ciudadActual = ciudadInicial()
-    ciudadesVisitadas.append(ciudadActual)
-    for i in range(ciudades):
-        if(ciudadActual==i):
-            probabilidades.append(0.0)
+    ciudadActual = 0
+    for j in range(ciudades):
+        if(ciudadActual==j):
+            probabilidades[j]=0
         else:
-            prob = float((feromonaMatriz[ciudadActual][i]**alfa)*(matrizHeuristicaLocal[ciudadActual][i])/sumatoria(ciudadActual,ciudadesVisitadas))
-            probabilidades.append(prob)
-        print probabilidades
+            prob = float((feromonaMatriz[ciudadActual][j]**alfa)*((matrizHeuristicaLocal[ciudadActual][j])**beta)/sumatoria(ciudadActual,ciudadesVisitadas))
+            probabilidades[j]=prob
+
         ciudadElegida = elegirCiudad(probabilidades)
+        #print ciudadElegida
+        #ESTO DEBERIA ESTAR FUERA DEL CICLO PERO SI LO SACO ME SALE ERROR DE DIVISION ENTRE ZERO :(
+        probabilidades.clear()
         ciudadActual = ciudadElegida
-        ciudadesVisitadas.append(ciudadElegida)
+        ciudadesVisitadas.append(ciudadActual)
     return ciudadesVisitadas
 
 
 #INICIO
 #Generamos las hormigas exploradoras
-hormigasExploradoras = tures_iniciales(mHormigas,ciudades)
+costoOptimo=0.0
+inicalesTur = tures_iniciales(nHormigExploradora,ciudades)
+for i in range(0,ciudades):
+    ActualizarMatrizFeromona(inicalesTur[i])
 
-#for i in range(ciudades):
-    #ActualizarMatrizFeromona(hormigasExploradoras[i])
+evaporacionFeromona()
 
-#iteraciones = 2
+for t in range(10):
+    for i in range(52):
+        turRecorrido = copy.deepcopy(recorrido())
+        costoNuevo=calcularCosto(turRecorrido)
+        if costoOptimo<costoNuevo:
+            costoOptimo=costoNuevo
+            rutaOptima=copy.deepcopy(turRecorrido)
 
-print feromonaMatriz
-'''matrizHeuristicaLocal=[[0, 1/3, 1/2, 1/4],
-                       [1/3,0,1/8,1/9],
-                       [1/2,1/8,0,1/10],
-                       [1/4,1/9,1/10,0]]'''
+    ActualizarMatrizFeromona(turRecorrido)
+    evaporacionFeromona()
+
+print rutaOptima
+print str(calcularCosto(rutaOptima))
 
 
-matrizHeuristicaLocal=[[0,0.333,0.5,0.25],
-                       [0.333,0,0.125,0.1111],
-                       [0.5,0.125,0,0.1],
-                       [0.25,0.1111,0.1,0]]
-
-
-print matrizHeuristicaLocal
-cvisitadas=[]
-cvisitadas.append(1)
-print sumatoria(1,cvisitadas)
 
 
 
